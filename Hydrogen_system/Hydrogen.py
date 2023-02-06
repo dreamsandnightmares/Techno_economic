@@ -2,17 +2,18 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import math
+from sympy import *
 
 class HydrogenTank(object):
     'P_el/P_fc  electrolyzer and fuel cell operating power (at the DC bus level)'
-    def __init__(self,cap_h2,t,eff_el,eff_fc):
+    def __init__(self,cap_h2,eff_el,eff_fc):
 
         self.LOH_max = 1
         self.LOH_min = 0
         self.tank_cap = cap_h2
         self.eff_el = eff_el
         self.eff_fc = eff_fc
-        self.time = t
+        self.time = 1
         self.LOH =None
         self.done = None
 
@@ -114,38 +115,38 @@ class Alkelectrolyzer(object):
     def volt_rev(self,  ):
         a = -0.0151*self.m-1.6788*10**(-3)*self.m**2+2.2588*10**(-5)**self.m**3
         b =1-1.2062*10**(-3)*self.m+5.6024*10**(-4)*self.m**2-7.8228*self.m**3*10**(-6)
-        P_v_h2o = math.exp(81.6179-7699.68/(self.T+273.15)-10.9*math.log(self.T+273.15)+9.5891*10**(-3)*(self.T+273.15))
+        P_v_h2o = math.exp(81.6179-7699.68/(self.T+274.15)-10.9*math.log(self.T+274.15)+9.5891*10**(-3)*(self.T+274.15))
 
         self.P_v_koh = math.exp(2.302*a + b*math.log(P_v_h2o))
 
-        self.a_h2o_koh = math.exp(-0.05192*self.m+0.003302*self.m**2+(3.177*self.m-2.131*self.m**2)/(self.T+273.15))
+        self.a_h2o_koh = math.exp(-0.05192*self.m+0.003302*self.m**2+(3.177*self.m-2.131*self.m**2)/(self.T+274.15))
 
-        volt_rev_0 =1.5184 - 1.5421*10**(-3)*(self.T+273.15)+9.526*10**(-5)*(self.T+273.15)*math.log(self.T+273.15)+9.84*10**(-8)*(self.T+273.15)**2
+        volt_rev_0 =1.5184 - 1.5421*10**(-3)*(self.T+274.15)+9.526*10**(-5)*(self.T+274.15)*math.log(self.T+274.15)+9.84*10**(-8)*(self.T+274.15)**2
         volt_rev = volt_rev_0+ self.Ru*self.T/(2*self.F)*math.log((self.P_act - self.P_v_koh)*(self.P_an-self.P_v_koh)**0.5/self.a_h2o_koh)
         return volt_rev
 
     def volt_act_an(self):
         self.theta = (-97.25+182*self.T/self.T0-84*(self.T/self.T0)**2)*(self.j/self.j0)**(0.3)
 
-        self.i0_an  = self.y_m_an*self.i0_an_ref*math.exp(-self.E_a_act_an*10**(3)/self.Ru*(1/(self.T+273.15)-1/self.T_ref))
+        self.i0_an  = self.y_m_an*self.i0_an_ref*math.exp(-self.E_a_act_an*10**(3)/self.Ru*(1/(self.T+274.15)-1/self.T_ref))
 
 
-        volt_act_an = self.Ru*(self.T+273.15)/(self.a_an*self.F)*math.asinh(self.i/2*self.i0_an*(1-self.theta))
+        volt_act_an = self.Ru*(self.T+274.15)/(self.a_an*self.F)*math.asinh(self.i/2*self.i0_an*(1-self.theta))
         return volt_act_an
 
     def volt_act_cat(self):
         self.theta = (-97.25 + 182 * self.T / self.T0 - 84 * (self.T / self.T0) ** 2) * (self.j / self.j0) ** (0.3)
 
         self.i0_cat = self.y_m_cat * self.i0_cat_ref * math.exp(
-            -self.E_a_act_cat * 10 ** (3) / self.Ru * (1 / (self.T + 273.15) - 1 / self.T_ref))
-        volt_act_an = self.Ru * (self.T+273.15) / (self.a_cat * self.F) * math.asinh(self.i / 2 * self.i0_cat * (1 - self.theta))
+            -self.E_a_act_cat * 10 ** (3) / self.Ru * (1 / (self.T + 274.15) - 1 / self.T_ref))
+        volt_act_an = self.Ru * (self.T+274.15) / (self.a_cat * self.F) * math.asinh(self.i / 2 * self.i0_cat * (1 - self.theta))
 
         return volt_act_an
 
     def volt_ohm(self):
         self.theta = (-97.25 + 182 * self.T / self.T0 - 84 * (self.T / self.T0) ** 2) * (self.j / self.j0) ** (0.3)
 
-        ASR_kohsol  = self.m/(1+self.k_el*(self.T+273.15 -self.T_ref))*((self.l_an_s-self.b_an)/self.A_e+1/(1-self.theta)**(3/2)*(self.b_an/self.A_e)+(self.l_cat_s-self.b_cat)/self.A_e+1/(1-self.theta)**(3/2)*(self.b_cat/self.A_e))
+        ASR_kohsol  = self.m/(1+self.k_el*(self.T+274.15 -self.T_ref))*((self.l_an_s-self.b_an)/self.A_e+1/(1-self.theta)**(3/2)*(self.b_an/self.A_e)+(self.l_cat_s-self.b_cat)/self.A_e+1/(1-self.theta)**(3/2)*(self.b_cat/self.A_e))
 
 
         ASR_mem = self.m*(self.t_s)**2*self.x_s/(self.w_s*self.e_s*self.A_s)
@@ -233,29 +234,29 @@ class PEMelectrolyzer(object):
         return volt_cell
 
     def volt_rev(self,):
-        V0 = 1.229 - 0.009 * (self.T+273.15 - 298)
+        V0 = 1.229 - 0.009 * (self.T+274.15 - 298)
         self.P_h2o = 6.1078*10**(-3)*math.exp(17.2694*(self.T)/(self.T-34.85))
-        volt_rev = V0+((self.T+273.15)*self.Ru/self.F*2)*(math.log(((self.p_cat-self.P_h2o)*(self.p_an-self.P_h2o)**0.5)/self.P_h2o))
+        volt_rev = V0+((self.T+274.15)*self.Ru/self.F*2)*(math.log(((self.p_cat-self.P_h2o)*(self.p_an-self.P_h2o)**0.5)/self.P_h2o))
         return volt_rev
 
     def volt_act_an(self):
 
         self.i0_an = self.y_m_an * self.i0_an_ref * math.exp(
-            -self.E_a_act_an * 10 ** (3) / self.Ru * (1 / (self.T + 273.15) - 1 / self.T_ref))
+            -self.E_a_act_an * 10 ** (3) / self.Ru * (1 / (self.T + 274.15) - 1 / self.T_ref))
 
-        volt_act_an = self.Ru * (self.T+273.15) / (self.a_an * self.F) * math.asinh(self.i / 2 * self.i0_an * (1))
+        volt_act_an = self.Ru * (self.T+274.15) / (self.a_an * self.F) * math.asinh(self.i / (2 * self.i0_an * (1)))
         return volt_act_an
     def volt_act_cat(self):
 
         self.i0_cat = self.y_m_cat * self.i0_cat_ref * math.exp(
-            -self.E_a_act_cat * 10 ** (3) / self.Ru * (1 / (self.T + 273.15) - 1 / self.T_ref))
-        volt_act_an = self.Ru * (self.T+273.15) / (self.a_cat * self.F) * math.asinh(self.i / 2 * self.i0_cat * (1))
+            -self.E_a_act_cat * math.pow(10,3) / self.Ru * (1 / (self.T + 274.15) - 1 / self.T_ref))
+        volt_act_an = self.Ru * (self.T+274.15) / (self.a_cat * self.F) * math.asinh(self.i / (2 * self.i0_cat * (1)))
 
 
         return volt_act_an
 
     def volt_ohm(self):
-        self.b_mem = self.b_mem_ref*math.exp((-self.E_a_mem*10**(3)/self.Ru)*(1/(self.T+273.15)-1/self.T_ref))
+        self.b_mem = self.b_mem_ref*math.exp((-self.E_a_mem*10**(3)/self.Ru)*(1/(self.T+274.15)-1/self.T_ref))
         self.ASR_mem  =self.b_thick/self.b_mem
 
         volt_ohm = (self.ASR_electric+self.ASR_mem)*self.i
@@ -263,7 +264,7 @@ class PEMelectrolyzer(object):
 
         return volt_ohm
     def volt_diff(self):
-        volt_diff = self.Ru*(self.T+273.15)/(4*self.F)*math.log(1-self.i/self.i_l_an)
+        volt_diff = self.Ru*(self.T+274.15)/(4*self.F)*math.log(1-self.i/self.i_l_an)
         return  volt_diff
 
     def faraday(self):
@@ -283,10 +284,10 @@ class PEMelectrolyzer(object):
         return n
 
 class PEM_fuelCell():
-    def __init__(self):
+    def __init__(self,cap):
         self.T = 60
-        self.P_h2 = 2.5
-        self.P_o2 = 1.4
+        self.P_h2 = 2
+        self.P_o2 = 0.6
         self.y_m_an = 2.5
         self.y_m_cat= 1.5
         self.i0_an_ref= 4.6*10**(-3)
@@ -301,13 +302,27 @@ class PEM_fuelCell():
         self.b_mem_ref =0.070
         self.E_a_mem = 9.82
         self.b_thick = 0.0183
-        self.ASR_electric = 2.96*10**(-2)
+        self.ASR_electric = 2.96*math.pow(10,-2)
+
+
+        self.P_cat = 1.2
+        self.P_an = 1.3
+        self.e_dif =4.65*math.pow(10,-11)
+        self.e_dif_o2 = 2
+
+        self.e_dp =2*math.pow(10,-11)
+
+
+
+        self.cap = cap
 
 
 
         self.i = None
         self.i_l_an = 2
         self.i_l_cat  =2
+        self.N =2
+        self.A = 50.6
 
 
 
@@ -319,45 +334,134 @@ class PEM_fuelCell():
         pass
 
     def volt_cell(self):
-        pass
+        V_rev = self.volt_rev()
+        V_act = self.volt_act_an()+self.volt_act_cat()
+        V_ohm =self.volt_ohm()
+        V_diff = self.volt_diff_an()+self.volt_diff_cat()
+        volt_cell = V_rev - V_act - V_ohm - V_diff
+        return volt_cell
     def volt_rev(self):
-        volt_rev = 1.228-0.85*10**(-3)*(self.T+273.15-298.15)+4.3086*(10)**(-5)*(self.T+273.15)*math.log(self.P_h2*self.P_o2**(0.5))
+        volt_rev = 1.228-0.85*math.pow(10,-3)*(self.T+274.15-298.15)+4.3086*math.pow(10,-5)*(self.T+274.15)*math.log(self.P_h2*math.pow(self.P_o2,0.5))
         return volt_rev
     def volt_act_an(self):
 
         self.i0_an = self.y_m_an * self.i0_an_ref * math.exp(
-            -self.E_a_act_an * 10 ** (3) / self.Ru * (1 / (self.T + 273.15) - 1 / self.T_ref))
+            (-self.E_a_act_an * math.pow(10,3) / self.Ru) * ((1 / (self.T + 274.15)) - (1 / self.T_ref)))
 
-        volt_act_an = self.Ru * (self.T+273.15) / (self.a_an * self.F) * math.asinh(self.i / 2 * self.i0_an * (1))
+        volt_act_an = self.Ru * (self.T+274.15) / (2*self.a_an * self.F) * math.asinh(self.i / (2 * self.i0_an) )
         return volt_act_an
     def volt_act_cat(self):
 
         self.i0_cat = self.y_m_cat * self.i0_cat_ref * math.exp(
-            -self.E_a_act_cat * 10 ** (3) / self.Ru * (1 / (self.T + 273.15) - 1 / self.T_ref))
-        volt_act_an = self.Ru * (self.T+273.15) / (self.a_cat * self.F) * math.asinh(self.i / 2 * self.i0_cat * (1))
+            -(self.E_a_act_cat * math.pow(10,3) / self.Ru) * (1 / (self.T + 274.15) - 1 / self.T_ref))
+        volt_act_an = self.Ru * (self.T+274.15) / (2*self.a_cat * self.F) * math.asinh(self.i / (2 * self.i0_cat) )
 
 
         return volt_act_an
     def volt_ohm(self):
-        self.b_mem = self.b_mem_ref*math.exp((-self.E_a_mem*10**(3)/self.Ru)*(1/(self.T+273.15)-1/self.T_ref))
+
+        self.b_mem = self.b_mem_ref*math.exp((-self.E_a_mem*math.pow(10,3)/self.Ru)*(1/(self.T+274.15)-1/self.T_ref))
         self.ASR_mem  =self.b_thick/self.b_mem
 
         volt_ohm = (self.ASR_electric+self.ASR_mem)*self.i
         return  volt_ohm
 
     def volt_diff_an(self):
-        volt_diff_an = self.Ru * (self.T + 273.15) / (2* self.F) * math.log(1 - self.i / self.i_l_an)
+
+
+
+
+
+        volt_diff_an = self.Ru * (self.T + 274.15) / (2* self.F) * math.log(1 - self.i / self.i_l_an)
+
         return volt_diff_an
 
     def volt_diff_cat(self):
-        volt_diff_cat = self.Ru * (self.T + 273.15) / (4 * self.F) * math.log(1 - self.i / self.i_l_cat)
+        volt_diff_cat = self.Ru * (self.T + 274.15) / (4 * self.F) * math.log(1 - self.i / self.i_l_cat)
         return volt_diff_cat
     def efficiency(self):
         u_c = self.volt_cell()
-        f = self.faraday()
 
-        n = 1.25/u_c*f
+
+        f = self.faraday()
+        #
+        # n = 1.25/u_c*f
+        n = u_c/(1.25*f)
+
+
         return n
+    def faraday(self):
+        F_h2 = self.i/2*self.F
+        F_o2 =F_h2/2
+
+        A_o2 = 2.8
+        P_o2_an = self.P_an+A_o2*self.i
+
+        b = -(1.2+3.4*self.i)
+
+        c = 1.03*self.i*P_o2_an
+        x = Symbol('x')
+        d,e = solve([x**2 + b*x +c],[x])
+        P_h2_cat = e[0]
+        e_en_h2 = F_o2/2*(1-self.e_dp*(P_h2_cat-P_o2_an)/(F_o2*self.b_thick))*(-1+abs(math.sqrt(1+4*(self.e_dif*P_h2_cat/self.b_thick+self.e_dp*(P_h2_cat-P_o2_an)/self.b_thick)/(F_o2*math.pow(1-self.e_dp*(P_h2_cat-P_o2_an)/(F_o2*self.b_thick),2)))))
+        e_en_o2 = self.e_dif_o2 * P_o2_an/self.b_thick
+
+        # self.N_h2 = self.N*self.i*self.A/(2*self.F)
+
+        # self.N_o2 = self.N*self.i*self.A/(4*self.F)
+
+
+        n = 1- e_en_h2/F_h2-2*e_en_o2/F_h2
+
+
+        return n
+
+if __name__ == '__main__':
+    '[ref size 10kw]'
+
+    FC_ref_size = 10
+    fc = PEM_fuelCell(FC_ref_size)
+
+    '[i-V]'
+    x = np.arange(0.01,1.25,0.01)
+    votl_cell = []
+    fc_faraday = []
+    fc_eff = []
+    power = []
+    for i in range(len(x)):
+        fc.i = x[i]
+        power_ =fc.i*fc.volt_cell()*fc.A
+        power.append(power_)
+        votl_cell.append(fc.volt_cell())
+        fc_faraday.append(fc.faraday())
+        fc_eff.append(fc.efficiency())
+
+    # plt.plot(x,fc_faraday)
+    plt.plot(x,fc_eff)
+    plt.title("i-faraday")
+    plt.xlabel('i [A/cm2]')
+    plt.ylabel('faraday efficiency [%]')
+
+    plt.show()
+
+    # p = np.arange(0.5,10,0.01)
+    # fc_volt_rev = fc.volt_rev()
+    # print(fc_volt_rev)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

@@ -19,9 +19,9 @@ class HydrogenTank(object):
     def initializa(self):
         self.LOH_t = 0.5
 
-    def LevelOfHydrogen(self,P_el,P_fc):
+    def LevelOfHydrogen(self,P_el,P_fc,eff_el,eff_fc):
 
-        self.LOH = self.LOH+P_el*self.time*self.eff_el/self.tank_cap - P_fc*self.time/self.eff_fc*self.tank_cap
+        self.LOH = self.LOH+P_el*self.time*eff_el/self.tank_cap - P_fc*self.time/eff_fc*self.tank_cap
 
         return self.LOH
 
@@ -40,6 +40,13 @@ class HydrogenTank(object):
     def max_dischage(self):
         energy  =abs((self.LOH-self.LOH_min)*self.eff_fc*self.tank_cap/(self.time))
         return energy
+
+    def max_loh(self):
+        return self.LOH_max
+    def min_loh(self):
+        return self.LOH_min
+
+
 
 class Alkelectrolyzer(object):
     def __init__(self,cap):
@@ -166,6 +173,14 @@ class Alkelectrolyzer(object):
         volt_cell = self.volt_rev + self.volt_act + self.volt_ohm + self.volt_diff
         return volt_cell
 
+    def efficiency(self):
+        u_c = self.volt_cell()
+        f = self.faraday()
+
+        n = 1.25/u_c*f
+        return n
+
+
 class PEMelectrolyzer(object):
     def __init__(self,cap):
         self.cap = cap
@@ -260,6 +275,13 @@ class PEMelectrolyzer(object):
 
         return n
 
+    def efficiency(self):
+        u_c = self.volt_cell()
+        f = self.faraday()
+
+        n = 1.25 / u_c * f
+        return n
+
 class PEM_fuelCell():
     def __init__(self):
         self.T = 60
@@ -330,6 +352,12 @@ class PEM_fuelCell():
     def volt_diff_cat(self):
         volt_diff_cat = self.Ru * (self.T + 273.15) / (4 * self.F) * math.log(1 - self.i / self.i_l_cat)
         return volt_diff_cat
+    def efficiency(self):
+        u_c = self.volt_cell()
+        f = self.faraday()
+
+        n = 1.25/u_c*f
+        return n
 
 
 

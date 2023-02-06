@@ -22,7 +22,7 @@ class Li_ionBattery():
          self.soc = self.soc*(1-self.B_t)+P_ch*self.time*self.eta_BT_ch*self.eta_BT_conv/self.cap-P_dc*self.time/(self.eta_BT_dc*self.eta_BT_conv*self.cap)
 
     def max_charge(self):
-        energy = (self.SocMax-self.soc*(1-self.B_t)*self.cap/(self.time*self.eta_BT_ch*self.eta_BT_conv)
+        energy = (self.SocMax-self.soc*(1-self.B_t)*self.cap/(self.time*self.eta_BT_ch*self.eta_BT_conv))
         return energy
     def max_discharge(self):
         energy = (abs(self.SocMin-self.soc*(1-self.B_t))*self.eta_BT_dc*self.eta_BT_conv*self.cap)/self.time
@@ -43,6 +43,17 @@ class Li_ionBattery():
         for i in range(len(DOD)):
             LT +=2*self.cap*DOD[i]*CTF[i]/len(DOD)
         return LT
+    def max_soc(self):
+        return self.SocMax
+    def min_soc(self):
+        return self.SocMin
+    def readEta_ch(self):
+        return self.eta_BT_ch
+    def readEta_dc(self):
+        return self.eta_BT_dc
+    def readEta_conv(self):
+        return self.eta_BT_conv
+
 
 
 
@@ -68,7 +79,7 @@ class Lead_acid_battert():
          self.soc = self.soc*(1-self.B_t)+P_ch*self.time*self.eta_BT_ch*self.eta_BT_conv/self.cap-P_dc*self.time/(self.eta_BT_dc*self.eta_BT_conv*self.cap)
 
     def max_charge(self):
-        energy = (self.SocMax-self.soc*(1-self.B_t)*self.cap/(self.time*self.eta_BT_ch*self.eta_BT_conv)
+        energy = (self.SocMax-self.soc*(1-self.B_t)*self.cap/(self.time*self.eta_BT_ch*self.eta_BT_conv))
         return energy
     def max_discharge(self):
         energy = (abs(self.SocMin-self.soc*(1-self.B_t))*self.eta_BT_dc*self.eta_BT_conv*self.cap)/self.time
@@ -88,6 +99,19 @@ class Lead_acid_battert():
         for i in range(len(DOD)):
             LT +=2*self.cap*DOD[i]*CTF[i]/len(DOD)
         return LT
+
+    def max_soc(self):
+        return self.SocMax
+    def min_soc(self):
+        return self.SocMin
+
+    def readEta_ch(self):
+        return self.eta_BT_ch
+    def readEta_dc(self):
+        return self.eta_BT_dc
+    def readEta_conv(self):
+        return self.eta_BT_conv
+
 
 
 

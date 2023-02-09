@@ -423,7 +423,7 @@ if __name__ == '__main__':
     fc = PEM_fuelCell(FC_ref_size)
 
     '[i-V]'
-    x = np.arange(0.01,1.25,0.01)
+    x = np.arange(0.2,2,0.01)
     votl_cell = []
     fc_faraday = []
     fc_eff = []
@@ -436,11 +436,11 @@ if __name__ == '__main__':
         fc_faraday.append(fc.faraday())
         fc_eff.append(fc.efficiency())
 
-    # plt.plot(x,fc_faraday)
     plt.plot(x,fc_eff)
-    plt.title("i-faraday")
+    # plt.plot( x,fc.faraday())
+    plt.title("i-efficiency")
     plt.xlabel('i [A/cm2]')
-    plt.ylabel('faraday efficiency [%]')
+    plt.ylabel('efficiency [%]')
 
     plt.show()
 

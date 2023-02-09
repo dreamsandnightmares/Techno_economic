@@ -62,13 +62,13 @@ class EMS_pbe():
             if Battery_SOC < Battery_SOC_max:
                 bt_max_charge_energy = self.bt.max_charge()
                 if self.DC_DC_converter(energy) <= bt_max_charge_energy:
-                    self.bt.soc(P_ch=self.DC_DC_converter(energy),P_dc=0)
+                    self.bt.SOC(P_ch=self.DC_DC_converter(energy),P_dc=0)
                     self.BT_AT+= self.DC_DC_converter(energy)*self.bt_eta_ch*self.bt_conv
                     self.energyToPower+=power_data
                     self.BT_lifetime +=1
                     self.BT_AT += self.DC_DC_converter(energy)*self.bt_eta_ch*self.bt_conv
                 else:
-                    self.bt.soc(P_ch=bt_max_charge_energy,P_dc=0)
+                    self.bt.SOC(P_ch=bt_max_charge_energy,P_dc=0)
                     self.BT_AT += bt_max_charge_energy * self.bt_eta_ch * self.bt_conv
                     self.energyToPower+=power_data
                     self.BT_lifetime += 1
@@ -125,13 +125,13 @@ class EMS_pbe():
                 BtToLoad_max = (self.DC_DC_converter(bt_max_discharge_energy))
 
                 if abs(energy)<=BtToLoad_max:
-                    self.bt.soc(P_ch=0,P_dc=self.DC_DC_converter(abs(energy)))
+                    self.bt.SOC(P_ch=0,P_dc=self.DC_DC_converter(abs(energy)))
                     self.BT_AT += self.DC_DC_converter(abs(energy)) /(self.bt_eta_dc * self.bt_conv)
                     self.energyToPower +=power_data
 
                     self.BT_lifetime+=1
                 else:
-                    self.bt.soc(P_ch=0,P_dc=(bt_max_discharge_energy))
+                    self.bt.SOC(P_ch=0,P_dc=(bt_max_discharge_energy))
                     self.BT_AT += bt_max_discharge_energy / (self.bt_eta_dc * self.bt_conv)
                     H2ToPower = (abs(energy) - self.DC_DC_converter(bt_max_discharge_energy))/0.965
                     self.BT_lifetime += 1
@@ -228,14 +228,17 @@ class EMS_OnlyBT():
             Battery_SOC = self.bt.readSoc()
             if Battery_SOC < Battery_SOC_max:
                 bt_max_charge_energy = self.bt.max_charge()
+
                 if self.DC_DC_converter(energy) <= bt_max_charge_energy:
-                    self.bt.soc(P_ch=self.DC_DC_converter(energy), P_dc=0)
+                    self.bt.SOC(P_ch=self.DC_DC_converter(energy), P_dc=0)
+                    self.bt.ch.append(self.DC_DC_converter(energy))
                     self.BT_AT += self.DC_DC_converter(energy) * self.bt_eta_ch * self.bt_conv
                     self.energyToPower += power_data
                     self.BT_lifetime += 1
                     self.BT_AT += self.DC_DC_converter(energy) * self.bt_eta_ch * self.bt_conv
                 else:
-                    self.bt.soc(P_ch=bt_max_charge_energy, P_dc=0)
+                    self.bt.SOC(P_ch=bt_max_charge_energy, P_dc=0)
+                    self.bt.ch.append(self.DC_DC_converter(energy))
                     self.BT_AT += bt_max_charge_energy * self.bt_eta_ch * self.bt_conv
                     self.energyToPower += power_data
                     self.BT_lifetime += 1
@@ -246,6 +249,7 @@ class EMS_OnlyBT():
             else:
                 offEnergy = energy
                 self.offEnergy.append(offEnergy)
+                self.bt.ch.append(0)
         else:
             Battery_SOC = self.bt.readSoc()
             if Battery_SOC > Battery_SOC_min:
@@ -253,17 +257,21 @@ class EMS_OnlyBT():
 
                 BtToLoad_max = (self.DC_DC_converter(bt_max_discharge_energy))
                 if abs(energy)<=BtToLoad_max:
-                    self.bt.soc(P_ch=0,P_dc=self.DC_DC_converter(abs(energy)))
+                    self.bt.SOC(P_ch=0,P_dc=self.DC_DC_converter(abs(energy)))
+                    self.bt.ch.append(-self.DC_DC_converter(abs(energy)))
                     self.BT_AT += self.DC_DC_converter(abs(energy)) /(self.bt_eta_dc * self.bt_conv)
                     self.energyToPower +=power_data
 
                     self.BT_lifetime+=1
                 else:
-                    self.bt.soc(P_ch=0,P_dc=(bt_max_discharge_energy))
+                    self.bt.SOC(P_ch=0,P_dc=(bt_max_discharge_energy))
+                    self.bt.ch.append(-self.DC_DC_converter(abs(energy)))
                     self.BT_AT += bt_max_discharge_energy / (self.bt_eta_dc * self.bt_conv)
 
                     self.BT_lifetime += 1
                     self.offLoad+=self.DC_AC_converter(abs(energy)-self.DC_DC_converter(bt_max_discharge_energy))
+            else:
+                self.bt.ch.append(0)
     def offload(self):
         return self.offLoad
     def offenergy(self):

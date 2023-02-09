@@ -12,13 +12,15 @@ class Li_ionBattery():
         self.done =False
         self.num = 1
 
+        self.ch = []
+
 
 
     def BattertInitializa(self):
         self.soc = 0.5
 
 
-    def soc(self,P_ch,P_dc):
+    def SOC(self,P_ch,P_dc):
          self.soc = self.soc*(1-self.B_t)+P_ch*self.time*self.eta_BT_ch*self.eta_BT_conv/self.cap-P_dc*self.time/(self.eta_BT_dc*self.eta_BT_conv*self.cap)
 
     def max_charge(self):
@@ -53,6 +55,9 @@ class Li_ionBattery():
         return self.eta_BT_dc
     def readEta_conv(self):
         return self.eta_BT_conv
+    def readenergy(self):
+        return self.ch
+
 
 
 
@@ -75,7 +80,7 @@ class Lead_acid_battert():
         self.num =1
     def BattertInitializa(self):
         self.soc = 0.5
-    def soc(self,P_ch,P_dc):
+    def SOC(self,P_ch,P_dc):
          self.soc = self.soc*(1-self.B_t)+P_ch*self.time*self.eta_BT_ch*self.eta_BT_conv/self.cap-P_dc*self.time/(self.eta_BT_dc*self.eta_BT_conv*self.cap)
 
     def max_charge(self):

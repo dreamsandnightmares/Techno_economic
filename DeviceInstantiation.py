@@ -54,10 +54,14 @@ class BT_System:
         BT_Model = self.model
 
         if  BT_Model == "Lead":
-            return Lead_acid_battert(self.cap)
+            BT =Lead_acid_battert(self.cap)
+            BT.BattertInitializa()
+            return BT
 
         else:
-           return Li_ionBattery(self.cap)
+            BT = Li_ionBattery(self.cap)
+            BT.BattertInitializa()
+            return BT
 class HT_System:
     def __init__(self,cap,eta_fc,eta_el):
         self.cap =cap

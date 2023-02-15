@@ -9,44 +9,6 @@ import matplotlib.pyplot as plt
 
 
 
-PV_cap = 260
-
-FC_cap = 45
-
-EL_cap =160
-EL_model = 'PEM'
-
-BT_caph =400
-BT_model = 'LI'
-
-HT_caph =3160
-HT_eta_fc =0.5
-HT_eta_el = 0.8
-project_life =20
-
-
-power_data,pv_data_T,pv_data_dir,pv_data_dif,pv_data_hor  =data_load.data_load()
-
-PV_Instantiate = DeviceInstantiation.PV_System(PV_cap)
-PV = PV_Instantiate.PV_Instantiate()
-
-BT_Instantiate =DeviceInstantiation.BT_System(BT_caph,BT_model)
-BT =BT_Instantiate.BT_Instantiate()
-
-HT_Instantiate =DeviceInstantiation.HT_System(HT_caph,HT_eta_el,HT_eta_fc)
-HT = HT_Instantiate.HT_Instantiate()
-
-FC_Instantiate = DeviceInstantiation.FC_System(cap=FC_cap)
-FC = FC_Instantiate.FC_Instantiate()
-FC_st_lifetime =FC_Instantiate.lifetime
-
-EL_Instantiate =DeviceInstantiation.EL_System(EL_model,cap=EL_cap)
-EL = EL_Instantiate.EL_Instantiate()
-EL_st_litetime = EL_Instantiate.lifetime
-
-
-time_load = 8640
-
 
 def load(fix_load):
 
@@ -129,9 +91,9 @@ class gridConnectTE():
             else:
                 self.r_tot += self.Price[time] * (self.PV.PVpower(time) - self.Bt.ch[time] )
         elif self.ems_model == 'HT':
-            self.r_tot += self.Price(self.time) * (self.PV(self.time) + self.FC.power(self.time) - self.EL.power(self.time))
+            self.r_tot += self.Price(time) * (self.PV(time) + self.FC.power(time) - self.EL.power(time))
         else:
-            self.r_tot += self.Price(self.time) * (self.PV(self.time) + self.FC.power(self.time) - self.EL.power(self.time)+self.Bt.dis(self.time)-self.Bt.ch(self.time))
+            self.r_tot += self.Price(time) * (self.PV(time) + self.FC.power(time) - self.EL.power(time)+self.Bt.dis(time)-self.Bt.ch(time))
     def CRF(self,i=0.05,n=20):
         crf = i*math.pow((1+i),n)/(math.pow((1+i),n)-1)
         return crf
@@ -369,14 +331,226 @@ class gridConnectTE():
             # print(self.BT_cap * self.pre_inv_LeadBT, 'not num')
         return C_inv_BT
 
+class gridConnectonlyBT():
+    def __init__(self,Price,PV,bt,E_max,h,project_time,pv_cap,bt_cap,bt_model,ems_model):
+        self.ems_model = ems_model
+        self.Price = Price
+        self.PV  =PV
+        self.Bt = bt
+        self.E_max =E_max
+        self.H= h
+        self.project_time = project_time
+
+        self.power_cost_storage = None
+        self.energy_cost_storage =None
+
+
+        self.dr = 0.08
+        self.ir = 0.03
+        self.d = None
+        self.project_lifetime = 20
+        self.energy_tot = 0
+        'cost inv [yuan]'
+
+        # self.pre_inv_LeadBT = C_storage
+        # self.pre_inv_LeadBT_power = C_power
+        self.pre_inv_Li_BT = 2300
+        self.pre_inv_HT = 500
+        self.pre_inv_PEM_EL = 6000
+        self.pre_inv_alk_EL = 3000
+        self.pre_inv_PEM_FC = 1190
+
+        'cap'
+        self.PV_cap = pv_cap
+        self.BT_cap = bt_cap
+
+        'model'
+        self.BT_Model = bt_model
+
+
+        'cost om'
+        self.pre_PV_OM = 130
+        self.li_om_cost = 60
+        self.lead_om_cost = 45
+        self.pre_inv_pv =6965
+        self.bt_num = 1
 
 
 
-def x_test(R_all,cost_all,E_max,h):
-    X = R_all / 20 / ((cost_all + E_max * (100 + h * 200)) * crf)
+        self.lifetime_bt = None
+
+        self.r_tot =0
+
+
+
+
+    def R_tot(self,time):
+        'discoust reward: duo fang dian de bu fen sui time + er zengda '
+
+        if self.ems_model == 'BT':
+
+
+            if self.Bt.ch[time]>=0:
+
+                self.r_tot += self.Price[time]*(self.PV.PVpower(time)-self.Bt.ch[time]/0.9)
+            else:
+                self.r_tot += self.Price[time] * (self.PV.PVpower(time) - self.Bt.ch[time] )
+        elif self.ems_model == 'HT':
+            self.r_tot += self.Price(time) * (self.PV(time) + self.FC.power(time) - self.EL.power(time))
+        else:
+            self.r_tot += self.Price(time) * (self.PV(time) + self.FC.power(time) - self.EL.power(time)+self.Bt.dis(time)-self.Bt.ch(time))
+    def CRF(self,i=0.05,n=20):
+        crf = i*math.pow((1+i),n)/(math.pow((1+i),n)-1)
+        return crf
+
+
+    def cost(self):
+
+
+        C_inv_tot = self.C_inv()  # investment contribution incurred by the system
+
+
+        C_NPC_OM_tot = self.C_NPC_OM()  # O&M contribution incurred by the system
+
+        C_NPC_rep_tot = self.C_NPC_rep()  # replacement contribution incurred by the system
+
+        # C_NPC_sal_tot = self.C_NPC_sal()  # salvage contribution incurred by the system
+        # print(C_NPC_sal_tot ,'sal')
+        C_NPC_tot = C_inv_tot + C_NPC_OM_tot
+        # C_NPC_tot = C_inv_tot + C_NPC_OM_tot + C_NPC_rep_tot - abs(C_NPC_sal_tot)
+
+
+        return C_NPC_tot
+
+    def C_inv(self,):
+        """
+            The output of the investment contributions(equation 30)
+
+            Arguments:
+            C_inv -- (in €) correspond to the investment contributions referred to the i-th component for the j-th year.
+
+            Returns:
+            C_inv_tot -- investment contributions
+        """
+
+        C_inv_tot = 0
+
+        C_inv_PV =self.PV_cap*self.pre_inv_pv
+
+        self.PV_rep = 0
+
+
+        if self.ems_model == 'BT':
+            if self.BT_Model == 'LeadAcid':
+                C_inv_BT = self.BT_cap * self.pre_inv_LeadBT * self.bt_num
+                self.BT_OM = C_inv_BT * 0.005
+            else:
+                C_inv_BT = self.BT_cap * self.pre_inv_Li_BT * self.bt_num
+                self.BT_OM = C_inv_BT * 0.005
+            self.BT_rep = C_inv_BT * 0.5
+            C_inv_tot =  C_inv_PV + + C_inv_BT
+
+        return C_inv_tot
+
+    def C_NPC_OM(self,):
+        """
+            The output of the O&M contribution(equation 31)
+
+            Arguments:
+            C_OM -- (in €) correspond to the OM contributions referred to the i-th component for the j-th year.
+
+
+            Returns:
+            C_NPC_OM_tot -- O&M contribution
+        """
+
+        C_NPC_OM_tot =  self.BT_OM +  self.pre_PV_OM
+
+        return C_NPC_OM_tot
+    def C_NPC_rep(self, ):
+        """
+            The output of the replacement contributions(equation 32)
+
+            Arguments:
+            C_rep -- (in €) correspond to the replacement contributions referred to the i-th component for the j-th year.
+
+            Returns:
+            C_NPC_rep_tot -- replacement contributions
+        """
+
+        C_NPC_rep_tot = self.BT_rep+self.PV_rep
+
+
+
+
+        # for j in range(self.project_life):
+        #     C_NPC_rep_tot += C_NPC_rep_tot / math.pow((1 + self.d), j)
+
+
+        return C_NPC_rep_tot
+    def C_NPC_sal(self,):
+        """
+            The output of the salvage contributions(equation 33)
+
+            Arguments:
+            C_sal -- (in €) correspond to the salvage contributions referred to the i-th component for the j-th year.
+
+            Returns:
+            C_NPC_sal_tot -- salvage contributions
+        """
+
+        C_NPC_sal_bt = abs(self.BT_rep * ((self.lifetime_bt - 20) / 20))
+        C_NPC_sal_tot =  C_NPC_sal_bt
+
+
+
+
+
+        # C_NPC_sal_tot = C_NPC_sal_tot / math.pow((1 + self.d), self.project_life)
+
+
+        return C_NPC_sal_tot
+    def C_BT(self):
+        if self.BT_Model == 'LeadAcid':
+            C_inv_BT = self.BT_cap * self.pre_inv_LeadBT * self.bt_num
+            self.BT_OM = C_inv_BT * 0.005
+        else:
+            C_inv_BT = self.BT_cap * self.pre_inv_Li_BT * self.bt_num
+            self.BT_OM = C_inv_BT * 0.005
+        return C_inv_BT
+
+    def C_inv_gen(self):
+        C_inv_gen = (self.PV_cap * self.pre_inv_pv +self.pre_PV_OM*self.PV_cap)/self.PV_cap
+
+        return C_inv_gen
+
+    def C_power_storage(self):
+        pass
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# def x_test(R_all,cost_all,E_max,h,crf):
+#     X = R_all / ((cost_all + E_max * (100 + h * 100)) * crf)
+#     return X
+
+
+def x_test(R_all,E_max,h,crf):
+    X = R_all / ((1 + E_max * (100 + h * 100)) * crf)
     return X
-
-
 
 def grid_price(time):
     price = 0
@@ -431,6 +605,43 @@ def grid_price(time):
 
 if __name__ == '__main__':
 
+    PV_cap = 260
+
+    FC_cap = 45
+
+    EL_cap = 160
+    EL_model = 'PEM'
+
+    BT_caph = 400
+    BT_model = 'LI'
+
+    HT_caph = 3160
+    HT_eta_fc = 0.5
+    HT_eta_el = 0.8
+    project_life = 20
+
+    power_data, pv_data_T, pv_data_dir, pv_data_dif, pv_data_hor = data_load.data_load()
+
+    PV_Instantiate = DeviceInstantiation.PV_System(PV_cap)
+    PV = PV_Instantiate.PV_Instantiate()
+
+    BT_Instantiate = DeviceInstantiation.BT_System(BT_caph, BT_model)
+    BT = BT_Instantiate.BT_Instantiate()
+
+    HT_Instantiate = DeviceInstantiation.HT_System(HT_caph, HT_eta_el, HT_eta_fc)
+    HT = HT_Instantiate.HT_Instantiate()
+
+    FC_Instantiate = DeviceInstantiation.FC_System(cap=FC_cap)
+    FC = FC_Instantiate.FC_Instantiate()
+    FC_st_lifetime = FC_Instantiate.lifetime
+
+    EL_Instantiate = DeviceInstantiation.EL_System(EL_model, cap=EL_cap)
+    EL = EL_Instantiate.EL_Instantiate()
+    EL_st_litetime = EL_Instantiate.lifetime
+
+    time_load = 8640
+
+
     price= []
     fix_load = load(100)
     diff =[]
@@ -477,18 +688,30 @@ if __name__ == '__main__':
     crf = EMS.CRF()
     print(Re/20)
 
-    Z = Re / 20 / ((cost+cost_bt*(x_e-1) + x_e * (2000 + Y**2 * 5000)) * crf)
-    ctf = plt.contourf(x_e, Y, Z, 15, cmap=plt.cm.hot)
+    Z = 1*x_e+2*Y
+    ctf = plt.contourf(Y,x_e , Z, 15, cmap='RdGy')
 
-    ct = plt.contour(x_e, Y, Z, 15, colors='k')  # 等高线设置成黑色
-    plt.clabel(ct, inline=True, fontsize=10)  # 添加标签
+    # ct = plt.contour(x_e, Y, Z, 15, colors='k')  # 等高线设置成黑色
+    # plt.clabel(ct, inline=True, fontsize=10)  # 添加标签
     # plt.pcolormesh(X, Y, Z)     # 绘制分类背景图
-    plt.colorbar(ctf)  # 添加cbar
+    plt.colorbar()  # 添加cbar
     plt.xlabel(('storage time'))  # 去掉x标签
     plt.ylabel(('storage ratio'))  # 去掉y标签
-
     plt.show()
+    Z = []
+    Z_X = []
+    for i in range(len(E_max_ra)):
+        Z_X =[]
+        for j in range(len(h)):
 
+            Z_X.append(1*E_max_ra[i]+2*h[j])
+        Z.append(Z_X)
+
+    ctf = plt.contourf(x_e, Y, Z, 15, cmap='RdGy')
+    plt.colorbar()  # 添加cbar
+    plt.xlabel(('storage time'))  # 去掉x标签
+    plt.ylabel(('storage ratio'))  # 去掉y标签
+    plt.show()
 
 
 

@@ -56,5 +56,6 @@ if __name__ == '__main__':
     plt.title("PV_power")
     plt.xlabel('Hour [h]')
     print(c)
+    print(max(a))
 
     plt.show()

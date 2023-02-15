@@ -6,63 +6,94 @@ import LPSP
 import economic
 import math
 import matplotlib.pyplot as plt
+import GridPrice
+import grid_connected
 
-def DC_DC_converter(X):
-    return X*0.965
-def DC_AC_converter(X):
-    return X*0.955
-
+'cap parameter'
 PV_cap = 260
+E_max = 1
+E_max_ra = np.arange(0, 5, 0.5)
+h_ra = np.arange(0, 5, 0.5)
 
-FC_cap = 45
-
-EL_cap =160
-EL_model = 'PEM'
-
-BT_caph =645
-BT_model = 'LI'
-
-HT_caph =3160
-HT_eta_fc =0.5
-HT_eta_el = 0.8
-
-
+h = 4
+time_load = 8640
+project_life =20
+BT_cap = PV_cap*E_max*h
+ch_energy =[]
+dc_energy =[]
+storage_eff = 0.9
+bt_action = None
+BT_model  ='LI'
+ems_model = 'BT'
+print('PV_cap:',PV_cap)
+print('E_max:',E_max)
+print('h',h)
+price =[]
+'pv_data price_data'
 power_data,pv_data_T,pv_data_dir,pv_data_dif,pv_data_hor  =data_load.data_load()
+for i in range(time_load):
+    price.append(GridPrice.grid_price(i))
 
+
+
+
+'''
+Device Instantiation
+'''
 PV_Instantiate = DeviceInstantiation.PV_System(PV_cap)
 PV = PV_Instantiate.PV_Instantiate()
 
-BT_Instantiate =DeviceInstantiation.BT_System(BT_caph,BT_model)
+BT_Instantiate =DeviceInstantiation.BT_System(BT_cap,BT_model)
 BT =BT_Instantiate.BT_Instantiate()
 
-HT_Instantiate =DeviceInstantiation.HT_System(HT_caph,HT_eta_el,HT_eta_fc)
-HT = HT_Instantiate.HT_Instantiate()
+'''
+EMS
+'''
+EMS = EnergyManagementSystem.EMS_grid_connect_only_bt(price,PV,BT,E_max,h,pv_cap=PV_cap)
+EMS.Energy_Storage_initializa()
+OPT = grid_connected.gridConnectonlyBT(price,PV,BT,E_max,h,project_life,PV_cap,BT_cap,BT_model,ems_model)
+R =0
+for i in range(time_load):
 
-FC_Instantiate = DeviceInstantiation.FC_System(cap=FC_cap)
-FC = FC_Instantiate.FC_Instantiate()
-FC_st_lifetime =FC_Instantiate.lifetime
+    RT_power_data = float(power_data[i])
+    RT_PV_data = (PV.PVpower(i))
+    if price[i]<=0.6:
+        bt_action ='ch'
+    else:
+        bt_action='dis'
 
-EL_Instantiate =DeviceInstantiation.EL_System(EL_model,cap=EL_cap)
-EL = EL_Instantiate.EL_Instantiate()
-EL_st_litetime = EL_Instantiate.lifetime
+    EMS.Energy_evaluate(bt_action,RT_PV_data)
+    dc_all ,ch_all = EMS.Energy_storage_mode(RT_PV_data,i)
+    dc_energy.append(dc_all)
+    ch_energy.append(ch_all)
+    R += price[i]*(RT_PV_data+dc_all-ch_all/storage_eff)
 
-EMS = EnergyManagementSystem.EMS_pbe(PV,BT,EL,FC,HT)
-time_load = 8640
 
 
-LPSP_star = 0.09
 
-project_life = 25
 
-OPT = economic.Lcoe(PV_cap,BT_caph,EL_cap,FC_cap,HT_caph,BT_model,EL_model)
-engry =0
 
-if __name__ == '__main__':
+LT = BT.lifetime()
+BT_AT = EMS.BT_peryear_AT()
+BT_lifetime = LT/BT_AT
+EMS.read_energy()
+if BT_lifetime < project_life:
+    OPT.bt_num = 2
+    print(OPT.bt_num)
+    OPT.lifetime_bt = BT_lifetime * 2
+cost = OPT.cost()
 
-    EMS.Energy_Storage_initializa()
-    power_all =[]
-    for j in range(project_life):
-        d = OPT.real_d()
-        for i in range(time_load):
-            RT_power_data = float(power_data[i])
+CRF = OPT.CRF()
+X  =grid_connected.x_test(R,cost,E_max,h,CRF)
+
+print(X)
+
+
+
+
+
+
+
+
+
 

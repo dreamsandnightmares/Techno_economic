@@ -9,6 +9,7 @@ def data_load():
     # 'PV_DATA'
     #
     df_pv1  = pd.read_csv('/home/wch/Downloads/data/weather_data.csv')
+    print(df_pv1)
 
     pv_data_T = df_pv1['AT_temperature']
     #

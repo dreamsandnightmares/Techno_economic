@@ -24,7 +24,7 @@ class Li_ionBattery():
          self.soc = self.soc*(1-self.B_t)+P_ch*self.time*self.eta_BT_ch*self.eta_BT_conv/self.cap-P_dc*self.time/(self.eta_BT_dc*self.eta_BT_conv*self.cap)
 
     def max_charge(self):
-        energy = (self.SocMax-self.soc*(1-self.B_t)*self.cap/(self.time*self.eta_BT_ch*self.eta_BT_conv))
+        energy = ((self.SocMax-self.soc*(1-self.B_t))*self.cap/(self.time*self.eta_BT_ch*self.eta_BT_conv))
         return energy
     def max_discharge(self):
         energy = (abs(self.SocMin-self.soc*(1-self.B_t))*self.eta_BT_dc*self.eta_BT_conv*self.cap)/self.time
